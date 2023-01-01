@@ -60,7 +60,7 @@ impl ReservationManager {
 
 #[cfg(test)]
 mod tests {
-    // use abi::convert_to_timestamp;
+    use abi::ReservationConflictInfo;
     use chrono::FixedOffset;
 
     use super::*;
@@ -88,8 +88,14 @@ mod tests {
             "hello,world",
         );
         let _rsvp1 = manager.reserve(rsvp1).await.unwrap();
-        let _rsvp2 = manager.reserve(rsvp2).await.unwrap_err();
-        println!("{:?}", _rsvp2);
-        // assert_eq!(_rsvp2, abi::Error::ConflictReservation())
+        let err = manager.reserve(rsvp2).await.unwrap_err();
+
+        if let abi::Error::ConflictReservation(ReservationConflictInfo::Parsed(info)) = err {
+            assert_eq!(info.old.rid, "r1");
+            assert_eq!(info.old.start.to_rfc3339(), "2022-12-25T22:00:00+00:00");
+            assert_eq!(info.old.end.to_rfc3339(), "2022-12-28T19:00:00+00:00");
+        } else {
+            panic!("expect conflict reservation error");
+        }
     }
 }
